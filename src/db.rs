@@ -1,12 +1,12 @@
 use serde_json::Value;
+use sqlx::postgres::PgQueryResult;
 use sqlx::{types::BigDecimal, PgPool};
 use std::error::Error;
 use tokio::sync::mpsc;
-use tracing::info;
+use tracing::{span, info, Level};
 
 use crate::payload::Payload;
-
-const DB_CONNECTION_STRING: &str = "postgres://postgres@127.0.0.1/robserver";
+use crate::config;
 
 async fn record(
 	conn: &PgPool,
@@ -14,8 +14,8 @@ async fn record(
 	vhost: &str,
 	exchange: &str,
 	json: &Value,
-) -> Result<(), Box<dyn Error>> {
-	let nr = sqlx::query!(
+) -> Result<PgQueryResult, sqlx::Error> {
+	sqlx::query!(
 		r#"
 		insert into data.entity as e (
 			id, vhost, exchange, payload
@@ -32,9 +32,7 @@ async fn record(
 		json,
 	)
 	.execute(conn)
-	.await?;
-	info!("Inserted: {:?}", nr);
-	Ok(())
+	.await
 }
 
 async fn record_payload(conn: &PgPool, payload: &Payload) -> Result<(), Box<dyn Error>> {
@@ -52,21 +50,22 @@ async fn record_payload(conn: &PgPool, payload: &Payload) -> Result<(), Box<dyn 
 
 pub async fn consumer(mut rx: mpsc::Receiver<Payload>) {
 	info!("connecting to DB....");
-	let pool = PgPool::connect(DB_CONNECTION_STRING)
+	let pool = PgPool::connect(config::psql::get_url().as_str())
 		.await
 		.expect("connect");
 
+	let buffer_size = config::get_buffer_size();
 	let mut to_handle: Vec<Payload> = Vec::new();
 
 	// while let Some(payload) = rx.recv().await {
-	while let x = rx.recv_many(&mut to_handle, 20).await {
+	while let x = rx.recv_many(&mut to_handle, buffer_size).await {
 		info!("Got {:?} to buffer({})", x, to_handle.len());
 		// TODO: insert many with a single request using recv_many
 		for payload in to_handle.iter() {
 			let result = record_payload(&pool, payload).await;
-			info!("Request result: {:?}", result);
 		}
+		info!("requests done");
 		to_handle.clear();
-		tokio::time::sleep(tokio::time::Duration::from_millis(3000)).await;
+		// tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
 	}
 }
