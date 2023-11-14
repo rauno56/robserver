@@ -23,6 +23,7 @@ pub fn hash_object<T: Hasher>(obj: &Value, s: T) -> T {
 mod tests {
 	use super::*;
 
+	use std::collections::hash_map::DefaultHasher;
 	use std::{assert_ne, hint::black_box};
 
 	fn str_to_payload_hash(input: &str) -> u64 {

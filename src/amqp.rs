@@ -1,6 +1,5 @@
 use futures_lite::StreamExt;
 use lapin::{options::*, types::FieldTable, Connection, ConnectionProperties};
-
 use tokio::sync::mpsc;
 use tracing::info;
 
