@@ -1,20 +1,44 @@
 use futures_lite::StreamExt;
-use lapin::{options::*, types::FieldTable, Connection, ConnectionProperties};
+use lapin::{options::*, types::FieldTable, Channel, Connection, ConnectionProperties, Queue};
 use tokio::sync::mpsc;
-use tracing::info;
+use tracing::{error, info};
 
+use crate::config::amqp as config;
 use crate::payload::Payload;
 
 const Q: &str = "robserver.messages";
 const CONSUMER_TAG: &str = "robserver.ct";
 
-pub async fn listen_messages(tx: mpsc::Sender<Payload>) {
-	let addr = std::env::var("ROBSERVER_AMQP_ADDR")
-		.unwrap_or_else(|_| "amqp://guest:guest@127.0.0.1:5672/%2f".into());
+pub async fn declare_queue(channel: &Channel) -> Result<Queue, lapin::Error> {
+	let mut fields = FieldTable::default();
+	fields.insert("x-max-length".into(), 10_000.into());
 
-	let exchanges = std::env::var("ROBSERVER_LISTEN_EX")
-		.unwrap_or_else(|_| "amq.direct,amq.fanout,amq.headers,amq.topic".into());
-	let exchanges = exchanges.split(',');
+	let options = QueueDeclareOptions {
+		durable: false,
+		exclusive: false,
+		auto_delete: true,
+		..QueueDeclareOptions::default()
+	};
+
+	channel.queue_declare(Q, options, fields).await
+}
+
+pub async fn retry_declare_queue(channel: &Channel) -> Queue {
+	let mut result = declare_queue(channel).await;
+
+	while let Err(err) = result {
+		error!("error declaring queue: {}", err);
+
+		result = declare_queue(channel).await
+	}
+
+	result.unwrap()
+}
+
+pub async fn listen_messages(tx: mpsc::Sender<Payload>) {
+	let addr = config::get_url();
+	let exchanges = config::get_exchanges();
+	let prefetch = config::get_prefetch();
 
 	let conn = Connection::connect(&addr, ConnectionProperties::default())
 		.await
@@ -26,28 +50,33 @@ pub async fn listen_messages(tx: mpsc::Sender<Payload>) {
 	let channel = conn.create_channel().await.expect("create_channel");
 	info!(state=?conn.status().state());
 
-	let queue = channel
-		.queue_declare(Q, QueueDeclareOptions::default(), FieldTable::default())
-		.await
-		.expect("queue_declare");
+	let queue = declare_queue(&channel).await;
+
 	info!(state=?conn.status().state());
 	info!(?queue, "Declared queue");
 
-	for ex in exchanges.into_iter() {
-		info!(exchange = ex, "Setting up binding");
-		channel
-			.queue_bind(
-				Q,
-				ex,
-				ex,
-				QueueBindOptions::default(),
-				FieldTable::default(),
-			)
-			.await
-			.expect("queue_bind");
+	{
+		let channel = conn.create_channel().await.expect("create_channel");
+
+		for ex in exchanges {
+			info!(exchange = ex, "Setting up binding");
+			channel
+				.queue_bind(
+					Q,
+					ex.as_str(),
+					"#",
+					QueueBindOptions::default(),
+					FieldTable::default(),
+				)
+				.await
+				.is_err_and(|err| {
+					error!(error = err.to_string(), "Failed to bind robserver to queue");
+					false
+				});
+		}
 	}
 
-	channel.basic_qos(10, BasicQosOptions::default());
+	channel.basic_qos(prefetch, BasicQosOptions::default());
 
 	info!("will consume");
 	let mut consumer = channel
@@ -68,16 +97,12 @@ pub async fn listen_messages(tx: mpsc::Sender<Payload>) {
 
 		tx.send(payload).await.expect("tx send");
 
-		tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+		// tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
 
 		message
 			.acker
-			.nack(BasicNackOptions {
-				multiple: false,
-				requeue: true,
-			})
+			.ack(BasicAckOptions { multiple: true })
 			.await
 			.expect("ack");
-		// if let Ok(delivery) = delivery {		}
 	}
 }

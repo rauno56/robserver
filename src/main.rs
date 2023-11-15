@@ -1,4 +1,5 @@
 mod amqp;
+mod config;
 mod db;
 mod hash;
 mod payload;
@@ -10,12 +11,9 @@ use payload::Payload;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-	if std::env::var("RUST_LOG").is_err() {
-		std::env::set_var("RUST_LOG", "info");
-	}
-	tracing_subscriber::fmt::init();
+	config::init();
 
-	let (tx, rx) = mpsc::channel::<Payload>(6);
+	let (tx, rx) = mpsc::channel::<Payload>(config::get_buffer_size());
 
 	let listener = amqp::listen_messages(tx);
 	let consumer = db::consumer(rx);
