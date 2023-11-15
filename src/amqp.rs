@@ -11,11 +11,11 @@ const CONSUMER_TAG: &str = "robserver.ct";
 
 pub async fn declare_queue(channel: &Channel) -> Result<Queue, lapin::Error> {
 	let mut fields = FieldTable::default();
-	fields.insert("x-max-length".into(), 5_000.into());
+	fields.insert("x-max-length".into(), 10_000.into());
 
 	let options = QueueDeclareOptions {
 		durable: false,
-		exclusive: true,
+		exclusive: false,
 		auto_delete: true,
 		..QueueDeclareOptions::default()
 	};
@@ -63,34 +63,21 @@ pub async fn listen_messages(tx: mpsc::Sender<Payload>) {
 		for ex in exchanges {
 			info!(exchange = ex, "Setting up binding");
 			channel
-				.exchange_bind(
-					"robserver",
+				.queue_bind(
+					Q,
 					ex.as_str(),
-					"",
-					ExchangeBindOptions::default(),
+					"#",
+					QueueBindOptions::default(),
 					FieldTable::default(),
 				)
 				.await
 				.is_err_and(|err| {
-					error!(exchange=ex, error=err.to_string(), "Failed to bind to queue");
+					error!(error=err.to_string(), "Failed to bind robserver to queue");
 					false
 				});
 		}
 	}
 
-	channel
-		.queue_bind(
-			Q,
-			"robserver",
-			"",
-			QueueBindOptions::default(),
-			FieldTable::default(),
-		)
-		.await
-		.is_err_and(|err| {
-			error!(error=err.to_string(), "Failed to bind robserver to queue");
-			false
-		});
 
 	channel.basic_qos(prefetch, BasicQosOptions::default());
 
