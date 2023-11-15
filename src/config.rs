@@ -8,7 +8,7 @@ pub fn init() {
 
 pub fn get_buffer_size() -> usize {
 		std::env::var("ROBSERVER_BUFFER_SIZE")
-			.map_or(500, |v| v.parse::<usize>().expect("invalid ROBSERVER_BUFFER_SIZE"))
+			.map_or(1_000, |v| v.parse::<usize>().expect("invalid ROBSERVER_BUFFER_SIZE"))
 }
 
 pub mod amqp {
