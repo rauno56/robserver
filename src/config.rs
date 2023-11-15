@@ -1,4 +1,3 @@
-
 pub fn init() {
 	if std::env::var("RUST_LOG").is_err() {
 		std::env::set_var("RUST_LOG", "info");
@@ -7,8 +6,9 @@ pub fn init() {
 }
 
 pub fn get_buffer_size() -> usize {
-		std::env::var("ROBSERVER_BUFFER_SIZE")
-			.map_or(1_000, |v| v.parse::<usize>().expect("invalid ROBSERVER_BUFFER_SIZE"))
+	std::env::var("ROBSERVER_BUFFER_SIZE").map_or(1_000, |v| {
+		v.parse::<usize>().expect("invalid ROBSERVER_BUFFER_SIZE")
+	})
 }
 
 pub mod amqp {
@@ -25,8 +25,9 @@ pub mod amqp {
 	}
 
 	pub fn get_prefetch() -> u16 {
-		std::env::var("ROBSERVER_PREFETCH")
-			.map_or(10, |v| v.parse::<u16>().expect("invalid ROBSERVER_PREFETCH"))
+		std::env::var("ROBSERVER_PREFETCH").map_or(10, |v| {
+			v.parse::<u16>().expect("invalid ROBSERVER_PREFETCH")
+		})
 	}
 }
 

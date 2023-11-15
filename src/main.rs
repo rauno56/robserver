@@ -1,5 +1,5 @@
-mod config;
 mod amqp;
+mod config;
 mod db;
 mod hash;
 mod payload;

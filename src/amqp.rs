@@ -1,10 +1,10 @@
 use futures_lite::StreamExt;
-use lapin::{options::*, types::FieldTable, Connection, ConnectionProperties, Channel, Queue};
+use lapin::{options::*, types::FieldTable, Channel, Connection, ConnectionProperties, Queue};
 use tokio::sync::mpsc;
-use tracing::{info, error};
+use tracing::{error, info};
 
-use crate::payload::Payload;
 use crate::config::amqp as config;
+use crate::payload::Payload;
 
 const Q: &str = "robserver.messages";
 const CONSUMER_TAG: &str = "robserver.ct";
@@ -20,9 +20,7 @@ pub async fn declare_queue(channel: &Channel) -> Result<Queue, lapin::Error> {
 		..QueueDeclareOptions::default()
 	};
 
-	channel
-		.queue_declare(Q, options, fields)
-		.await
+	channel.queue_declare(Q, options, fields).await
 }
 
 pub async fn retry_declare_queue(channel: &Channel) -> Queue {
@@ -72,12 +70,11 @@ pub async fn listen_messages(tx: mpsc::Sender<Payload>) {
 				)
 				.await
 				.is_err_and(|err| {
-					error!(error=err.to_string(), "Failed to bind robserver to queue");
+					error!(error = err.to_string(), "Failed to bind robserver to queue");
 					false
 				});
 		}
 	}
-
 
 	channel.basic_qos(prefetch, BasicQosOptions::default());
 
@@ -104,9 +101,7 @@ pub async fn listen_messages(tx: mpsc::Sender<Payload>) {
 
 		message
 			.acker
-			.ack(BasicAckOptions {
-				multiple: true,
-			})
+			.ack(BasicAckOptions { multiple: true })
 			.await
 			.expect("ack");
 	}

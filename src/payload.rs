@@ -27,35 +27,42 @@ impl Payload {
 }
 
 impl Hash for Payload {
-  fn hash<H: Hasher>(&self, state: &mut H) {
-    self.id.hash(state);
-    self.vhost.hash(state);
-    self.exchange.hash(state);
-  }
+	fn hash<H: Hasher>(&self, state: &mut H) {
+		self.id.hash(state);
+		self.vhost.hash(state);
+		self.exchange.hash(state);
+	}
 }
 
 impl PartialEq for Payload {
-  fn eq(&self, other: &Payload) -> bool {
-      self.id == other.id
-      	&& self.vhost == other.vhost
-      	&& self.exchange == other.exchange
-  }
+	fn eq(&self, other: &Payload) -> bool {
+		self.id == other.id && self.vhost == other.vhost && self.exchange == other.exchange
+	}
 }
 
 impl Eq for Payload {}
 
 #[cfg(test)]
 mod tests {
-	use std::collections::{HashSet, HashMap};
+	use std::collections::{HashMap, HashSet};
 
 	use super::*;
 
 	// prop0 = 10
-	const V1: &[u8] = &[123, 34, 102, 111, 111, 34, 58, 34, 98, 97, 114, 34, 44, 34, 112, 114, 111, 112, 48, 34, 58, 49, 48, 125];
+	const V1: &[u8] = &[
+		123, 34, 102, 111, 111, 34, 58, 34, 98, 97, 114, 34, 44, 34, 112, 114, 111, 112, 48, 34,
+		58, 49, 48, 125,
+	];
 	// prop0 = 13
-	const V2: &[u8] = &[123, 34, 102, 111, 111, 34, 58, 34, 98, 97, 114, 34, 44, 34, 112, 114, 111, 112, 48, 34, 58, 49, 51, 125];
+	const V2: &[u8] = &[
+		123, 34, 102, 111, 111, 34, 58, 34, 98, 97, 114, 34, 44, 34, 112, 114, 111, 112, 48, 34,
+		58, 49, 51, 125,
+	];
 	// prop1 = 13
-	const V3: &[u8] = &[123, 34, 102, 111, 111, 34, 58, 34, 98, 97, 114, 34, 44, 34, 112, 114, 111, 112, 49, 34, 58, 49, 51, 125];
+	const V3: &[u8] = &[
+		123, 34, 102, 111, 111, 34, 58, 34, 98, 97, 114, 34, 44, 34, 112, 114, 111, 112, 49, 34,
+		58, 49, 51, 125,
+	];
 
 	const VHOST1: &str = "/1";
 	const VHOST2: &str = "/2";
@@ -118,28 +125,60 @@ mod tests {
 	fn hash_set_usage() {
 		let mut set = HashSet::with_capacity(20);
 
-		set.insert(Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX1)));
+		set.insert(Payload::new(
+			V1.to_vec(),
+			String::from(VHOST1),
+			String::from(EX1),
+		));
 		assert_eq!(set.len(), 1);
 
-		set.insert(Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX1)));
+		set.insert(Payload::new(
+			V1.to_vec(),
+			String::from(VHOST1),
+			String::from(EX1),
+		));
 		assert_eq!(set.len(), 1);
 
-		set.insert(Payload::new(V2.to_vec(), String::from(VHOST1), String::from(EX1)));
+		set.insert(Payload::new(
+			V2.to_vec(),
+			String::from(VHOST1),
+			String::from(EX1),
+		));
 		assert_eq!(set.len(), 1);
 
-		set.insert(Payload::new(V3.to_vec(), String::from(VHOST1), String::from(EX1)));
+		set.insert(Payload::new(
+			V3.to_vec(),
+			String::from(VHOST1),
+			String::from(EX1),
+		));
 		assert_eq!(set.len(), 2);
 
-		set.insert(Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX1)));
+		set.insert(Payload::new(
+			V1.to_vec(),
+			String::from(VHOST1),
+			String::from(EX1),
+		));
 		assert_eq!(set.len(), 2);
 
-		set.insert(Payload::new(V1.to_vec(), String::from(VHOST2), String::from(EX1)));
+		set.insert(Payload::new(
+			V1.to_vec(),
+			String::from(VHOST2),
+			String::from(EX1),
+		));
 		assert_eq!(set.len(), 3);
 
-		set.insert(Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX2)));
+		set.insert(Payload::new(
+			V1.to_vec(),
+			String::from(VHOST1),
+			String::from(EX2),
+		));
 		assert_eq!(set.len(), 4);
 
-		set.insert(Payload::new(V1.to_vec(), String::from(VHOST2), String::from(EX2)));
+		set.insert(Payload::new(
+			V1.to_vec(),
+			String::from(VHOST2),
+			String::from(EX2),
+		));
 		assert_eq!(set.len(), 5);
 	}
 
@@ -147,19 +186,34 @@ mod tests {
 	fn hash_map_usage() {
 		let mut map = HashMap::new();
 
-		map.insert(Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX1)), 1);
+		map.insert(
+			Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX1)),
+			1,
+		);
 		assert_eq!(map.len(), 1);
 
-		map.insert(Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX1)), 2);
+		map.insert(
+			Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX1)),
+			2,
+		);
 		assert_eq!(map.len(), 1);
 
-		map.insert(Payload::new(V2.to_vec(), String::from(VHOST1), String::from(EX1)), 3);
+		map.insert(
+			Payload::new(V2.to_vec(), String::from(VHOST1), String::from(EX1)),
+			3,
+		);
 		assert_eq!(map.len(), 1);
 
-		map.insert(Payload::new(V3.to_vec(), String::from(VHOST1), String::from(EX1)), 4);
+		map.insert(
+			Payload::new(V3.to_vec(), String::from(VHOST1), String::from(EX1)),
+			4,
+		);
 		assert_eq!(map.len(), 2);
 
-		map.insert(Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX1)), 5);
+		map.insert(
+			Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX1)),
+			5,
+		);
 		assert_eq!(map.len(), 2);
 	}
 }

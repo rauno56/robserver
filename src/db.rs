@@ -3,11 +3,11 @@ use sqlx::postgres::PgQueryResult;
 use sqlx::{types::BigDecimal, PgPool};
 use std::error::Error;
 use tokio::sync::mpsc;
-use tracing::{span, info, Level};
+use tracing::info;
 
-use std::collections::{HashSet, HashMap};
-use crate::payload::Payload;
 use crate::config;
+use crate::payload::Payload;
+use std::collections::HashMap;
 
 async fn record(
 	conn: &PgPool,
@@ -48,7 +48,10 @@ async fn record_payload(conn: &PgPool, payload: &Payload) -> Result<(), Box<dyn 
 	Ok(())
 }
 
-async fn update_counts(conn: &PgPool, mut counts: HashMap<Payload, usize>) -> Result<PgQueryResult, sqlx::Error> {
+async fn update_counts(
+	conn: &PgPool,
+	mut counts: HashMap<Payload, usize>,
+) -> Result<PgQueryResult, sqlx::Error> {
 	let mut id = Vec::with_capacity(counts.len());
 	let mut vhost = Vec::with_capacity(counts.len());
 	let mut exchange = Vec::with_capacity(counts.len());
@@ -108,7 +111,7 @@ pub async fn consumer(mut rx: mpsc::Receiver<Payload>) {
 			if let Some(c) = counts_to_handle.get_mut(&payload) {
 				*c += 1;
 			} else {
-				let result = record_payload(&pool, &payload).await;
+				let _result = record_payload(&pool, &payload).await;
 				new_items_count += 1;
 				counts_to_handle.insert(payload, 0);
 			}
