@@ -24,7 +24,7 @@ async fn record(
 		)
 		on conflict
 			on constraint entity_pkey
-				do update set count = e.count + 1
+				do update set count = e.count + 1, last_seen_at = now()
 	"#,
 		BigDecimal::from(id),
 		vhost,
