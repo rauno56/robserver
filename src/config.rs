@@ -29,6 +29,12 @@ pub mod amqp {
 			v.parse::<u16>().expect("invalid ROBSERVER_PREFETCH")
 		})
 	}
+
+	pub fn get_queue_max_length() -> u32 {
+		std::env::var("ROBSERVER_QUEUE_MAX_LENGTH").map_or(100_000, |v| {
+			v.parse::<u32>().expect("invalid ROBSERVER_QUEUE_MAX_LENGTH")
+		})
+	}
 }
 
 pub mod psql {

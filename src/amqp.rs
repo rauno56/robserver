@@ -11,7 +11,7 @@ const CONSUMER_TAG: &str = "robserver.ct";
 
 pub async fn declare_queue(channel: &Channel) -> Result<Queue, lapin::Error> {
 	let mut fields = FieldTable::default();
-	fields.insert("x-max-length".into(), 10_000.into());
+	fields.insert("x-max-length".into(), config::get_queue_max_length().into());
 
 	let options = QueueDeclareOptions {
 		durable: false,
@@ -23,6 +23,7 @@ pub async fn declare_queue(channel: &Channel) -> Result<Queue, lapin::Error> {
 	channel.queue_declare(Q, options, fields).await
 }
 
+#[allow(dead_code)]
 pub async fn retry_declare_queue(channel: &Channel) -> Queue {
 	let mut result = declare_queue(channel).await;
 
@@ -60,7 +61,7 @@ pub async fn listen_messages(tx: mpsc::Sender<Payload>) {
 
 		for ex in exchanges {
 			info!(exchange = ex, "Setting up binding");
-			channel
+			let _ = channel
 				.queue_bind(
 					Q,
 					ex.as_str(),
@@ -76,7 +77,8 @@ pub async fn listen_messages(tx: mpsc::Sender<Payload>) {
 		}
 	}
 
-	channel.basic_qos(prefetch, BasicQosOptions::default());
+	let res = channel.basic_qos(prefetch, BasicQosOptions::default()).await;
+	info!("set prefetch to {}: {:?}", prefetch, res);
 
 	info!("will consume");
 	let mut consumer = channel
@@ -96,8 +98,6 @@ pub async fn listen_messages(tx: mpsc::Sender<Payload>) {
 		let payload = Payload::new(message.data, "/".to_string(), message.exchange.to_string());
 
 		tx.send(payload).await.expect("tx send");
-
-		// tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
 
 		message
 			.acker
