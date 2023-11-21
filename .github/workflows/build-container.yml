@@ -3,6 +3,10 @@ on:
   push:
     branches:
       - main
+      - 'release/**'
+      - 'build/**'
+    tags:
+      - '**'
 
 jobs:
   build:
