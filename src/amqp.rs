@@ -77,7 +77,9 @@ pub async fn listen_messages(tx: mpsc::Sender<Payload>) {
 		}
 	}
 
-	let res = channel.basic_qos(prefetch, BasicQosOptions::default()).await;
+	let res = channel
+		.basic_qos(prefetch, BasicQosOptions::default())
+		.await;
 	info!("set prefetch to {}: {:?}", prefetch, res);
 
 	info!("will consume");
