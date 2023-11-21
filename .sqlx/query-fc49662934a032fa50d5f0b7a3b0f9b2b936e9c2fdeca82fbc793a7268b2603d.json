@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n\t\tinsert into data.entity as e (\n\t\t\tid, vhost, exchange, payload, count\n\t\t)\n\t\tselect\n\t\t\tid, vhost, exchange, payload, count\n\t\tfrom (\n\t\t\tselect\n\t\t\t\tunnest($1::numeric[]) as id,\n\t\t\t\tunnest($2::text[]) as vhost,\n\t\t\t\tunnest($3::text[]) as exchange,\n\t\t\t\tunnest($4::jsonb[]) as payload,\n\t\t\t\tunnest($5::integer[]) as count\n\t\t) as new\n\t\ton conflict\n\t\t\ton constraint entity_pkey\n\t\t\t\tdo update set count = e.count + EXCLUDED.count, last_seen_at = now()\n\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "NumericArray",
+        "TextArray",
+        "TextArray",
+        "JsonbArray",
+        "Int4Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fc49662934a032fa50d5f0b7a3b0f9b2b936e9c2fdeca82fbc793a7268b2603d"
+}

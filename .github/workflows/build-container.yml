@@ -30,7 +30,7 @@ jobs:
       uses: redhat-actions/buildah-build@v2
       with:
         image: ${{ env.IMAGE_NAME }}
-        tags: latest ${{ github.sha }}
+        tags: latest ${{ github.sha }} ${{ github.ref_name }}
         containerfiles: ./Dockerfile
 
     - name: Log in to the GitHub Container registry
@@ -40,6 +40,10 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    # Requires https://github.com/rauno56/robserver/settings/actions
+    # > Workflow permissions
+    # > Read and write permissions
+    # to be enabled
     - name: Push to GitHub Container Repository
       id: push-to-ghcr
       uses: redhat-actions/push-to-registry@v2
