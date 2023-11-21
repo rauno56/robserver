@@ -40,6 +40,10 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    # Requires https://github.com/rauno56/robserver/settings/actions
+    # > Workflow permissions
+    # > Read and write permissions
+    # to be enabled
     - name: Push to GitHub Container Repository
       id: push-to-ghcr
       uses: redhat-actions/push-to-registry@v2
