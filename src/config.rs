@@ -41,6 +41,7 @@ pub mod amqp {
 pub mod psql {
 	pub fn get_url() -> String {
 		std::env::var("ROBSERVER_PG_ADDR")
+			.or_else(|_| std::env::var("DATABASE_URL"))
 			.unwrap_or_else(|_| "postgres://postgres@127.0.0.1/robserver".into())
 	}
 
