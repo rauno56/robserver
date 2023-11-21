@@ -164,6 +164,6 @@ pub async fn consumer(mut rx: mpsc::Receiver<Payload>) {
 		}
 		insert_counts(&pool, counts_to_handle).await;
 		// slow queries down
-		tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+		// tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
 	}
 }
