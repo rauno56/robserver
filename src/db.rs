@@ -148,8 +148,8 @@ pub async fn consumer(mut rx: mpsc::Receiver<Payload>) {
 		.await
 		.expect("connect");
 
-	let buffer_size = config::get_buffer_size();
-	let mut to_handle: Vec<Payload> = Vec::new();
+	let buffer_size = config::psql::get_max_query_size();
+	let mut to_handle: Vec<Payload> = Vec::with_capacity(buffer_size);
 
 	while let x = rx.recv_many(&mut to_handle, buffer_size).await {
 		let mut counts_to_handle: HashMap<Payload, usize> = HashMap::with_capacity(x);
