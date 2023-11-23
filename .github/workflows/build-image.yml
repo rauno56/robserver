@@ -1,4 +1,4 @@
-name: Build Container
+name: Build images
 on:
   push:
     branches:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    name: Build image
+    name: Build images
     runs-on: ubuntu-latest
     env:
       IMAGE_NAME: ${{ github.event.repository.name }}
@@ -39,13 +39,36 @@ jobs:
     - name: Run fmt
       run: cargo fmt --check
 
-    - name: Buildah Action
+    - name: Normalize tags
+      id: norm-tags
+      run: |
+        TAGS=$(echo latest ${{ github.sha }} ${{ github.ref_name }} | tr "/" "-")
+        echo "TAGS: $TAGS"
+        echo "tags=$TAGS" > $GITHUB_OUTPUT
+
+    - name: Normalize migration tags
+      id: norm-migration-tags
+      run: |
+        TAGS=$(echo latest-migration ${{ github.sha }}-migration ${{ github.ref_name }}-migration | tr "/" "-")
+        echo "MIGRATION TAGS: $TAGS"
+        echo "tags=$TAGS" > $GITHUB_OUTPUT
+
+    - name: Build application image
       id: build-image
       uses: redhat-actions/buildah-build@v2
       with:
         image: ${{ env.IMAGE_NAME }}
-        tags: latest ${{ github.sha }} ${{ github.ref_name }}
+        tags: ${{ steps.norm-tags.outputs.tags }}
         containerfiles: ./Dockerfile
+        layers: true
+
+    - name: Build migration image
+      id: build-migration-image
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: ${{ env.IMAGE_NAME }}
+        tags: ${{ steps.norm-migration-tags.outputs.tags }}
+        containerfiles: ./sqlx-cli.Dockerfile
         layers: true
 
     - name: Log in to the GitHub Container registry
@@ -64,5 +87,5 @@ jobs:
       uses: redhat-actions/push-to-registry@v2
       with:
         image: ${{ steps.build-image.outputs.image }}
-        tags: ${{ steps.build-image.outputs.tags }}
+        tags: ${{ steps.build-image.outputs.tags }} ${{ steps.build-migration-image.outputs.tags }}
         registry: ${{ env.REGISTRY }}

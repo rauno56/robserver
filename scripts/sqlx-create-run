@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+cargo sqlx database create || exit 1
+cargo sqlx migrate run
