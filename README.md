@@ -17,16 +17,30 @@ Then if you have `cargo` installed locally:
 export DATABASE_URL="postgres://postgres@127.0.0.1/robserver"
 export ROBSERVER_AMQP_ADDR="amqp://guest:guest@127.0.0.1:5672/%2f"
 
-cargo sqlx database create
-cargo sqlx migrate run
-
 cargo run
 ```
 
 Or run it as a container(the image is under 100mb):
 
 ```bash
-podman run --rm -it --network host -e DATABASE_URL="postgres://postgres@127.0.0.1/robserver" -e ROBSERVER_AMQP_ADDR="amqp://guest:guest@127.0.0.1:5672/%2f" --name robserver ghcr.io/rauno56/robserver:v1.2.0
+podman run --rm -it --name robserver --network host -e DATABASE_URL="postgres://postgres@127.0.0.1/robserver" -e ROBSERVER_AMQP_ADDR="amqp://guest:guest@127.0.0.1:5672/%2f" ghcr.io/rauno56/robserver:latest
+```
+
+## Running migrations
+
+Above example uses a feature build into postgres docker images to run migrations on startup. If you don't have that possibility, you must run the migrations before starting robserver service. If you have `cargo` installed locally:
+
+```bash
+export DATABASE_URL="postgres://postgres@127.0.0.1/robserver"
+
+cargo sqlx database create
+cargo sqlx migrate run
+```
+
+... if not, you can use a prebuild docker image:
+
+```bash
+podman run --rm -it --name robserver-migration --network host -e DATABASE_URL="postgres://postgres@127.0.0.1/robserver" ghcr.io/rauno56/robserver:latest-migration
 ```
 
 ## Configuration
