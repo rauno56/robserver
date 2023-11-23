@@ -46,6 +46,7 @@ jobs:
         image: ${{ env.IMAGE_NAME }}
         tags: latest ${{ github.sha }} ${{ github.ref_name }}
         containerfiles: ./Dockerfile
+        layers: true
 
     - name: Log in to the GitHub Container registry
       uses: redhat-actions/podman-login@v1
