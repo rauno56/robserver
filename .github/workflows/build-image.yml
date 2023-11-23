@@ -1,0 +1,91 @@
+name: Build images
+on:
+  push:
+    branches:
+      - main
+      - 'release/**'
+      - 'build/**'
+    tags:
+      - '**'
+
+jobs:
+  build:
+    name: Build images
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ${{ github.event.repository.name }}
+      REGISTRY: ghcr.io/${{ github.actor }}
+    steps:
+
+    - name: Clone the repository
+      uses: actions/checkout@v3
+
+    - uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Run tests
+      run: cargo test
+
+    - name: Run clippy
+      run: cargo clippy
+
+    - name: Run fmt
+      run: cargo fmt --check
+
+    - name: Normalize tags
+      id: norm-tags
+      run: |
+        TAGS=$(echo latest ${{ github.sha }} ${{ github.ref_name }} | tr "/" "-")
+        echo "TAGS: $TAGS"
+        echo "tags=$TAGS" > $GITHUB_OUTPUT
+
+    - name: Normalize migration tags
+      id: norm-migration-tags
+      run: |
+        TAGS=$(echo latest-migration ${{ github.sha }}-migration ${{ github.ref_name }}-migration | tr "/" "-")
+        echo "MIGRATION TAGS: $TAGS"
+        echo "tags=$TAGS" > $GITHUB_OUTPUT
+
+    - name: Build application image
+      id: build-image
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: ${{ env.IMAGE_NAME }}
+        tags: ${{ steps.norm-tags.outputs.tags }}
+        containerfiles: ./Dockerfile
+        layers: true
+
+    - name: Build migration image
+      id: build-migration-image
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: ${{ env.IMAGE_NAME }}
+        tags: ${{ steps.norm-migration-tags.outputs.tags }}
+        containerfiles: ./sqlx-cli.Dockerfile
+        layers: true
+
+    - name: Log in to the GitHub Container registry
+      uses: redhat-actions/podman-login@v1
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    # Requires https://github.com/rauno56/robserver/settings/actions
+    # > Workflow permissions
+    # > Read and write permissions
+    # to be enabled
+    - name: Push to GitHub Container Repository
+      id: push-to-ghcr
+      uses: redhat-actions/push-to-registry@v2
+      with:
+        image: ${{ steps.build-image.outputs.image }}
+        tags: ${{ steps.build-image.outputs.tags }} ${{ steps.build-migration-image.outputs.tags }}
+        registry: ${{ env.REGISTRY }}
