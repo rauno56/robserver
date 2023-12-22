@@ -1,6 +1,7 @@
 use futures_lite::StreamExt;
 use lapin::{options::*, types::FieldTable, Channel, Connection, ConnectionProperties, Queue};
 use tokio::sync::mpsc;
+use tokio::time::{timeout, Duration};
 use tracing::{error, info};
 
 use crate::config::amqp as config;
@@ -37,31 +38,32 @@ pub async fn retry_declare_queue(channel: &Channel) -> Queue {
 }
 
 pub async fn listen_messages(tx: mpsc::Sender<Payload>) {
+	info!("Connecting...");
 	let addr = config::get_url();
 	let exchanges = config::get_exchanges();
 	let prefetch = config::get_prefetch();
 
-	let conn = Connection::connect(&addr, ConnectionProperties::default())
-		.await
-		.expect("connection error");
+	let conn = timeout(Duration::from_secs(5), async {
+		let conn = Connection::connect(&addr, ConnectionProperties::default())
+			.await
+			.expect("Failed to connect to RabbitMQ");
 
-	info!("CONNECTED");
+		return conn;
+	})
+	.await
+	.expect("Failed to connect to RabbitMQ");
 
-	//receive channel
+	info!("Connected");
+
 	let channel = conn.create_channel().await.expect("create_channel");
-	info!(state=?conn.status().state());
-
 	let queue = declare_queue(&channel).await;
-
-	info!(state=?conn.status().state());
 	info!(?queue, "Declared queue");
 
 	{
-		let channel = conn.create_channel().await.expect("create_channel");
+		let mut channel = conn.create_channel().await.expect("create_channel");
 
 		for ex in exchanges {
-			info!(exchange = ex, "Setting up binding");
-			let _ = channel
+			match channel
 				.queue_bind(
 					Q,
 					ex.as_str(),
@@ -70,19 +72,27 @@ pub async fn listen_messages(tx: mpsc::Sender<Payload>) {
 					FieldTable::default(),
 				)
 				.await
-				.is_err_and(|err| {
-					error!(error = err.to_string(), "Failed to bind robserver to queue");
-					false
-				});
+			{
+				Ok(_) => {
+					info!(exchange = ex, "Successfully bound")
+				}
+				Err(_) => {
+					channel = conn.create_channel().await.unwrap();
+				}
+			};
 		}
 	}
 
-	let res = channel
+	channel
 		.basic_qos(prefetch, BasicQosOptions::default())
-		.await;
-	info!("set prefetch to {}: {:?}", prefetch, res);
+		.await
+		.expect("Failed to set prefetch");
 
-	info!("will consume");
+	channel.on_error(|_| {
+		info!("channel error");
+	});
+
+	info!("Consuming");
 	let mut consumer = channel
 		.basic_consume(
 			Q,
@@ -91,20 +101,21 @@ pub async fn listen_messages(tx: mpsc::Sender<Payload>) {
 			FieldTable::default(),
 		)
 		.await
-		.expect("basic_consume");
-	info!(state=?conn.status().state());
+		.expect("Failed to consume");
 
 	while let Some(delivery) = consumer.next().await {
 		let message = delivery.unwrap();
 
 		let payload = Payload::new(message.data, "/".to_string(), message.exchange.to_string());
 
-		tx.send(payload).await.expect("tx send");
+		tx.send(payload)
+			.await
+			.expect("Could not send payload for processing");
 
 		message
 			.acker
 			.ack(BasicAckOptions { multiple: true })
 			.await
-			.expect("ack");
+			.expect("Failed to ack");
 	}
 }
