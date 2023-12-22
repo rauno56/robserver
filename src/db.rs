@@ -112,7 +112,7 @@ async fn insert_counts(
 		json.push(p.json);
 		count.push(to_add as i32);
 	}
-	info!("Inserting/updating counts for {:?} items", id.len());
+	info!(len = id.len(), "Inserting/updating counts");
 	sqlx::query!(
 		r#"
 		insert into data.entity as e (
@@ -143,17 +143,18 @@ async fn insert_counts(
 }
 
 pub async fn consumer(mut rx: mpsc::Receiver<Payload>) {
-	info!("connecting to DB....");
+	info!("Connecting...");
 	let pool = PgPool::connect(config::psql::get_url().as_str())
 		.await
-		.expect("connect");
+		.expect("Failed to connect to Postgres");
+	info!("Connected");
 
 	let buffer_size = config::psql::get_max_query_size();
 	let mut to_handle: Vec<Payload> = Vec::with_capacity(buffer_size);
 
 	while let x = rx.recv_many(&mut to_handle, buffer_size).await {
 		let mut counts_to_handle: HashMap<Payload, usize> = HashMap::with_capacity(x);
-		info!("Processing {x} items");
+		info!(len = x, "Processing items");
 
 		for payload in to_handle.drain(0..) {
 			if let Some(c) = counts_to_handle.get_mut(&payload) {
