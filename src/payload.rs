@@ -4,9 +4,15 @@ use std::hash::{Hash, Hasher};
 
 use crate::hash::hash_object;
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum Data {
+	Json(Value),
+	Raw(Vec<u8>),
+}
+
 #[derive(Debug, Clone)]
 pub struct Payload {
-	pub json: Value,
+	pub content: Data,
 	pub id: u64,
 	pub vhost: String,
 	pub exchange: String,
@@ -14,11 +20,18 @@ pub struct Payload {
 
 impl Payload {
 	pub fn new(data: Vec<u8>, vhost: String, exchange: String) -> Payload {
-		let json = serde_json::from_slice(&data).unwrap();
+		let Ok(json) = serde_json::from_slice(&data) else {
+			return Payload {
+				content: Data::Raw(data),
+				id: 0,
+				vhost,
+				exchange,
+			};
+		};
 		let s = DefaultHasher::new();
 		let id = hash_object(&json, s).finish();
 		Payload {
-			json,
+			content: Data::Json(json),
 			id,
 			vhost,
 			exchange,
@@ -48,20 +61,25 @@ mod tests {
 
 	use super::*;
 
-	// prop0 = 10
+	// `{"foo":"bar","prop0":10}`
 	const V1: &[u8] = &[
 		123, 34, 102, 111, 111, 34, 58, 34, 98, 97, 114, 34, 44, 34, 112, 114, 111, 112, 48, 34,
 		58, 49, 48, 125,
 	];
-	// prop0 = 13
+	// `{"foo":"bar","prop0":13}`
 	const V2: &[u8] = &[
 		123, 34, 102, 111, 111, 34, 58, 34, 98, 97, 114, 34, 44, 34, 112, 114, 111, 112, 48, 34,
 		58, 49, 51, 125,
 	];
-	// prop1 = 13
+	// `{"foo":"bar","prop1":13}`
 	const V3: &[u8] = &[
 		123, 34, 102, 111, 111, 34, 58, 34, 98, 97, 114, 34, 44, 34, 112, 114, 111, 112, 49, 34,
 		58, 49, 51, 125,
+	];
+	// `foo":"bar","prop1":13}`
+	const INVALID: &[u8] = &[
+		102, 111, 111, 34, 58, 34, 98, 97, 114, 34, 44, 34, 112, 114, 111, 112, 49, 34, 58, 49, 51,
+		125,
 	];
 
 	const VHOST1: &str = "/1";
@@ -102,6 +120,20 @@ mod tests {
 			Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX1)),
 			Payload::new(V3.to_vec(), String::from(VHOST1), String::from(EX1))
 		);
+	}
+
+	#[test]
+	fn payload_invalid() {
+		let payload = Payload::new(INVALID.to_vec(), String::from(VHOST1), String::from(EX1));
+
+		assert_eq!(
+			payload.content,
+			Data::Raw(r#"foo":"bar","prop1":13}"#.into())
+		);
+		assert_eq!(payload.id, 0);
+
+		assert_eq!(payload.vhost, String::from(VHOST1));
+		assert_eq!(payload.exchange, String::from(EX1));
 	}
 
 	#[test]
