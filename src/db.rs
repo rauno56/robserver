@@ -6,7 +6,7 @@ use tokio::sync::mpsc;
 use tracing::info;
 
 use crate::config;
-use crate::payload::Payload;
+use crate::payload::{Payload, Data};
 use std::collections::HashMap;
 
 #[allow(dead_code)]
@@ -35,19 +35,6 @@ async fn record(
 	)
 	.execute(conn)
 	.await
-}
-
-#[allow(dead_code)]
-async fn record_payload(conn: &PgPool, payload: &Payload) -> Result<(), Box<dyn Error>> {
-	record(
-		conn,
-		payload.id,
-		payload.vhost.as_str(),
-		payload.exchange.as_str(),
-		&payload.json,
-	)
-	.await?;
-	Ok(())
 }
 
 #[allow(dead_code)]
@@ -101,6 +88,7 @@ async fn insert_counts(
 	let mut vhost = Vec::with_capacity(counts.len());
 	let mut exchange = Vec::with_capacity(counts.len());
 	let mut json = Vec::with_capacity(counts.len());
+	let mut raw: Vec<Option<String>> = Vec::with_capacity(counts.len());
 	let mut count = Vec::with_capacity(counts.len());
 	for (p, to_add) in counts.drain() {
 		if to_add == 0 {
@@ -109,24 +97,34 @@ async fn insert_counts(
 		id.push(BigDecimal::from(p.id));
 		vhost.push(p.vhost);
 		exchange.push(p.exchange);
-		json.push(p.json);
+		match p.content {
+			Data::Json(value) => {
+				json.push(Some(value));
+				raw.push(None);
+			},
+			Data::Raw(value) => {
+				json.push(None);
+				raw.push(String::from_utf8(value).ok());
+			}
+		}
 		count.push(to_add as i32);
 	}
 	info!(len = id.len(), "Inserting/updating counts");
 	sqlx::query!(
 		r#"
 		insert into data.entity as e (
-			id, vhost, exchange, payload, count
+			id, vhost, exchange, payload, raw_payload, count
 		)
 		select
-			id, vhost, exchange, payload, count
+			id, vhost, exchange, payload, raw_payload, count
 		from (
 			select
 				unnest($1::numeric[]) as id,
 				unnest($2::text[]) as vhost,
 				unnest($3::text[]) as exchange,
 				unnest($4::jsonb[]) as payload,
-				unnest($5::integer[]) as count
+				unnest($5::text[]) as raw_payload,
+				unnest($6::integer[]) as count
 		) as new
 		on conflict
 			on constraint entity_pkey
@@ -135,7 +133,8 @@ async fn insert_counts(
 		&id[..],
 		&vhost[..],
 		&exchange[..],
-		&json[..],
+		&json[..] as &[Option<Value>],
+		&raw[..] as &[Option<String>],
 		&count[..],
 	)
 	.execute(conn)
