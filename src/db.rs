@@ -5,7 +5,7 @@ use tokio::sync::mpsc;
 use tracing::info;
 
 use crate::config;
-use crate::payload::{Payload, Data};
+use crate::payload::{Data, Payload};
 use std::collections::HashMap;
 
 async fn insert_counts(
@@ -29,7 +29,7 @@ async fn insert_counts(
 			Data::Json(value) => {
 				json.push(Some(value));
 				raw.push(None);
-			},
+			}
 			Data::Raw(value) => {
 				json.push(None);
 				raw.push(String::from_utf8(value).ok());
@@ -79,7 +79,8 @@ pub async fn consumer(mut rx: mpsc::Receiver<Payload>) {
 	let buffer_size = config::psql::get_max_query_size();
 	let mut to_handle: Vec<Payload> = Vec::with_capacity(buffer_size);
 
-	while let x = rx.recv_many(&mut to_handle, buffer_size).await {
+	loop {
+		let x = rx.recv_many(&mut to_handle, buffer_size).await;
 		let mut counts_to_handle: HashMap<Payload, usize> = HashMap::with_capacity(x);
 		info!(len = x, "Processing items");
 
@@ -90,7 +91,9 @@ pub async fn consumer(mut rx: mpsc::Receiver<Payload>) {
 				counts_to_handle.insert(payload, 1);
 			}
 		}
-		insert_counts(&pool, counts_to_handle).await;
+		let _ = insert_counts(&pool, counts_to_handle)
+			.await
+			.expect("Failed to insert counts");
 		// slow queries down
 		// tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
 	}
