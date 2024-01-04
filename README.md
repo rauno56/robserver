@@ -14,7 +14,7 @@ podman run --rm -d --name robserver-mq -p 15672:15672 -p 5672:5672 rabbitmq:3.10
 Then if you have `cargo` installed locally:
 
 ```bash
-export DATABASE_URL="postgres://postgres@127.0.0.1/robserver"
+export ROBSERVER_PG_ADDR="postgres://postgres@127.0.0.1/robserver"
 export ROBSERVER_AMQP_ADDR="amqp://guest:guest@127.0.0.1:5672/%2f"
 
 cargo run
@@ -23,7 +23,7 @@ cargo run
 Or run it as a container(the image is under 100mb):
 
 ```bash
-podman run --rm -it --name robserver --network host -e DATABASE_URL="postgres://postgres@127.0.0.1/robserver" -e ROBSERVER_AMQP_ADDR="amqp://guest:guest@127.0.0.1:5672/%2f" ghcr.io/rauno56/robserver:latest
+podman run --rm -it --name robserver --network host -e ROBSERVER_PG_ADDR="postgres://postgres@127.0.0.1/robserver" -e ROBSERVER_AMQP_ADDR="amqp://guest:guest@127.0.0.1:5672/%2f" ghcr.io/rauno56/robserver:latest
 ```
 
 ## Running migrations
@@ -40,7 +40,7 @@ cargo sqlx migrate run
 ... if not, you can use a prebuild docker image:
 
 ```bash
-podman run --rm -it --name robserver-migration --network host -e DATABASE_URL="postgres://postgres@127.0.0.1/robserver" ghcr.io/rauno56/robserver:latest-migration
+podman run --rm -it --name robserver-migration --network host -e ROBSERVER_PG_ADDR="postgres://postgres@127.0.0.1/robserver" ghcr.io/rauno56/robserver:latest-migration
 ```
 
 ## Configuration
