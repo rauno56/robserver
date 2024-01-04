@@ -7,4 +7,5 @@ RUN rm -rf $CARGO_HOME/registry
 COPY migrations migrations
 COPY scripts/sqlx-create-run sqlx-create-run
 
+RUN chmod +x sqlx-create-run
 CMD ["bash", "sqlx-create-run"]
