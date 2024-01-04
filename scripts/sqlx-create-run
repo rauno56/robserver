@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
 
+echo "Applying migrations"
+
+echo "DATABASE_URL: $DATABASE_URL"
+echo "ROBSERVER_PG_ADDR: $ROBSERVER_PG_ADDR"
+
 cargo sqlx database create || exit 1
 cargo sqlx migrate run
