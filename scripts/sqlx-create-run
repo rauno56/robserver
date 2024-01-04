@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
 
-cargo sqlx database create || exit 1
-cargo sqlx migrate run
+echo "Applying migrations"
+
+cargo sqlx database create --database-url "${ROBSERVER_PG_ADDR}" && echo "DB created" || echo "DB creation failed"
+cargo sqlx migrate run --database-url "${ROBSERVER_PG_ADDR}"
