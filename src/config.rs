@@ -21,7 +21,7 @@ pub mod amqp {
 		let exchanges = std::env::var("ROBSERVER_LISTEN_EX")
 			.unwrap_or_else(|_| "amq.direct,amq.fanout,amq.headers,amq.topic".into());
 
-		exchanges.split(',').map(str::to_string).collect()
+		exchanges.split(',').map(str::to_string).filter(|x| x.len() > 0).collect()
 	}
 
 	pub fn get_prefetch() -> u16 {
@@ -35,6 +35,11 @@ pub mod amqp {
 			v.parse::<u32>()
 				.expect("invalid ROBSERVER_QUEUE_MAX_LENGTH")
 		})
+	}
+
+	pub fn get_queue() -> String {
+		std::env::var("ROBSERVER_QUEUE")
+			.unwrap_or_else(|_| "robserver.messages".into())
 	}
 }
 

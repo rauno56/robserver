@@ -2,15 +2,14 @@ use futures_lite::StreamExt;
 use lapin::{options::*, types::FieldTable, Channel, Connection, ConnectionProperties, Queue};
 use tokio::sync::mpsc;
 use tokio::time::{timeout, Duration};
-use tracing::{error, info};
+use tracing::info;
 
 use crate::config::amqp as config;
 use crate::payload::Payload;
 
-const Q: &str = "robserver.messages";
 const CONSUMER_TAG: &str = "robserver.ct";
 
-pub async fn declare_queue(channel: &Channel) -> Result<Queue, lapin::Error> {
+pub async fn declare_work_queue(channel: &Channel, queue_name: &String) -> Result<Queue, lapin::Error> {
 	let mut fields = FieldTable::default();
 	fields.insert("x-max-length".into(), config::get_queue_max_length().into());
 
@@ -21,20 +20,7 @@ pub async fn declare_queue(channel: &Channel) -> Result<Queue, lapin::Error> {
 		..QueueDeclareOptions::default()
 	};
 
-	channel.queue_declare(Q, options, fields).await
-}
-
-#[allow(dead_code)]
-pub async fn retry_declare_queue(channel: &Channel) -> Queue {
-	let mut result = declare_queue(channel).await;
-
-	while let Err(err) = result {
-		error!("error declaring queue: {}", err);
-
-		result = declare_queue(channel).await
-	}
-
-	result.unwrap()
+	channel.queue_declare(queue_name, options, fields).await
 }
 
 pub async fn listen_messages(tx: mpsc::Sender<Payload>) {
@@ -42,6 +28,7 @@ pub async fn listen_messages(tx: mpsc::Sender<Payload>) {
 	let addr = config::get_url();
 	let exchanges = config::get_exchanges();
 	let prefetch = config::get_prefetch();
+	let work_queue = config::get_queue();
 
 	let conn = timeout(Duration::from_secs(5), async {
 		let conn = Connection::connect(&addr, ConnectionProperties::default())
@@ -56,16 +43,18 @@ pub async fn listen_messages(tx: mpsc::Sender<Payload>) {
 	info!("Connected");
 
 	let channel = conn.create_channel().await.expect("create_channel");
-	let queue = declare_queue(&channel).await;
+	let queue = declare_work_queue(&channel, &work_queue).await;
 	info!(?queue, "Declared queue");
 
-	{
+	if exchanges.len() == 0 {
+		info!("No exchanges to bind to");
+	} else {
 		let mut channel = conn.create_channel().await.expect("create_channel");
 
 		for ex in exchanges {
 			match channel
 				.queue_bind(
-					Q,
+					&work_queue,
 					ex.as_str(),
 					"#",
 					QueueBindOptions::default(),
@@ -95,7 +84,7 @@ pub async fn listen_messages(tx: mpsc::Sender<Payload>) {
 	info!("Consuming");
 	let mut consumer = channel
 		.basic_consume(
-			Q,
+			&work_queue,
 			CONSUMER_TAG,
 			BasicConsumeOptions::default(),
 			FieldTable::default(),
