@@ -9,7 +9,7 @@ use crate::payload::Payload;
 
 const CONSUMER_TAG: &str = "robserver.ct";
 
-pub async fn declare_work_queue(channel: &Channel, queue_name: &String) -> Result<Queue, lapin::Error> {
+pub async fn declare_work_queue(channel: &Channel, queue_name: &str) -> Result<Queue, lapin::Error> {
 	let mut fields = FieldTable::default();
 	fields.insert("x-max-length".into(), config::get_queue_max_length().into());
 
@@ -31,22 +31,27 @@ pub async fn listen_messages(tx: mpsc::Sender<Payload>) {
 	let work_queue = config::get_queue();
 
 	let conn = timeout(Duration::from_secs(5), async {
-		let conn = Connection::connect(&addr, ConnectionProperties::default())
+		Connection::connect(&addr, ConnectionProperties::default())
 			.await
-			.expect("Failed to connect to RabbitMQ");
-
-		return conn;
+			.expect("Failed to connect to RabbitMQ")
 	})
 	.await
 	.expect("Failed to connect to RabbitMQ");
 
 	info!("Connected");
 
-	let channel = conn.create_channel().await.expect("create_channel");
+	let mut channel = conn.create_channel().await.expect("create_channel");
 	let queue = declare_work_queue(&channel, &work_queue).await;
-	info!(?queue, "Declared queue");
+	match queue {
+		Ok(_) => info!(?queue, "Declared queue"),
+		Err(lapin::Error::ProtocolError(ref e)) if e.get_id() == 406 /* PRECONDITION FAILED */ => {
+			info!("Queue already declared");
+			channel = conn.create_channel().await.expect("create_channel");
+		},
+		Err(err) => panic!("Unrecoverable error declaring queue: {:?}", err),
+	};
 
-	if exchanges.len() == 0 {
+	if exchanges.is_empty() {
 		info!("No exchanges to bind to");
 	} else {
 		let mut channel = conn.create_channel().await.expect("create_channel");

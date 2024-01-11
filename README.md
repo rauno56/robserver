@@ -58,8 +58,8 @@ Configuration is done through environment variables
 
 #### DB
 
-- `ROBSERVER_PG_ADDR`: connection string for the PostgreSQL server.
-- `ROBSERVER_MAX_QUERY_SIZE`: maximum number of payloads taken from the internal buffer to be processed and stored. Making it bigger than the buffer size has no effect.
+- `ROBSERVER_PG_ADDR`: connection string for the PostgreSQL server. Defaults to `postgres://postgres@127.0.0.1/robserver`.
+- `ROBSERVER_MAX_QUERY_SIZE`: maximum number of payloads taken from the internal buffer to be processed and stored. Making it bigger than the buffer size has no effect. Defaults to `1000`.
 
 ## JSON payload shape
 

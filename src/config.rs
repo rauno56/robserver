@@ -21,7 +21,7 @@ pub mod amqp {
 		let exchanges = std::env::var("ROBSERVER_LISTEN_EX")
 			.unwrap_or_else(|_| "amq.direct,amq.fanout,amq.headers,amq.topic".into());
 
-		exchanges.split(',').map(str::to_string).filter(|x| x.len() > 0).collect()
+		exchanges.split(',').map(str::to_string).filter(|x| !x.is_empty()).collect()
 	}
 
 	pub fn get_prefetch() -> u16 {
