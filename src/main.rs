@@ -13,10 +13,10 @@ use payload::Payload;
 async fn main() -> Result<()> {
 	config::init();
 
-	let (tx, rx) = mpsc::channel::<Payload>(config::get_buffer_size());
+	let (payload_tx, payload_rx) = mpsc::channel::<Payload>(config::get_buffer_size());
 
-	let listener = amqp::listen_messages(tx);
-	let consumer = db::consumer(rx);
+	let listener = amqp::listen_messages(payload_tx);
+	let consumer = db::consumer(payload_rx);
 
 	let _result = tokio::join!(listener, consumer);
 

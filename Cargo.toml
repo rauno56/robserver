@@ -10,6 +10,7 @@ async-global-executor = "2.3.1"
 async-std = "1.12.0"
 futures-lite = "2.0.1"
 lapin = { version = "2.3.1", features = ["rustls"] }
+reqwest = { version = "0.11.23", features = ["json"] }
 serde = { version = "1.0.192", features = ["derive"] }
 serde_json = "1.0.108"
 sqlx = { version = "0.7.2", features = ["runtime-tokio", "postgres", "bigdecimal", "tls-rustls"] }

@@ -17,6 +17,11 @@ pub mod amqp {
 			.unwrap_or_else(|_| "amqp://guest:guest@127.0.0.1:5672/%2f".into())
 	}
 
+	pub fn get_definitions_url() -> String {
+		std::env::var("ROBSERVER_AMQP_DEF_ADDR")
+			.unwrap_or_else(|_| "http://guest:guest@mq:15672/api/definitions".into())
+	}
+
 	pub fn get_exchanges() -> Vec<String> {
 		let exchanges = std::env::var("ROBSERVER_LISTEN_EX")
 			.unwrap_or_else(|_| "amq.direct,amq.fanout,amq.headers,amq.topic".into());
