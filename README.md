@@ -62,13 +62,13 @@ Configuration is done through environment variables
 
 #### MQ
 
-- `ROBSERVER_BUFFER_SIZE`: number of payloads held in the memory at once. If the payloads are really big, you might want to decrease that. Defaults to `10_000`.
 - `ROBSERVER_AMQP_ADDR`: connection string for the RabbitMQ server. Defaults to `amqp://guest:guest@127.0.0.1:5672/%2f`.
-- `ROBSERVER_AMQP_DEF_ADDR`: API definition endpoint to discover and auto-bind to all exchanges. Defaults to `http://guest:guest@127.0.0.1:15672/api/definitions`.
+- `ROBSERVER_AMQP_DEF_ADDR`: endpoint to poll for RabbitMQ resource definitions. If not set, but `ROBSERVER_AMQP_ADDR` is parsable and includes username and password then `http://{user}:{pass}@{host}:15672/api/definitions` is used, if not, defaults to `http://guest:guest@127.0.0.1:15672/api/definitions`.
+- `ROBSERVER_BUFFER_SIZE`: number of payloads held in the memory at once. If the payloads are really big, you might want to decrease that. Defaults to `10_000`.
 - `ROBSERVER_LISTEN_EX`: comma-separated list of exchanges to observe. Defaults to `amq.direct,amq.fanout,amq.headers,amq.topic`.
 - `ROBSERVER_PREFETCH`: AMQP prefetch setting. Defaults to `100`.
-- `ROBSERVER_QUEUE`: queue to create and bind exchanges to. Defaults to `robserver.messages`.
 - `ROBSERVER_QUEUE_MAX_LENGTH`: when `robserver` spins up it will create non-durable autodeleted queue to consume the payloads from. This is `x-max-length` property of that queue. If the number of queued payloads gets to that level, any unconsumed payloads will be dropped to make room for new. Defaults to `100_000`.
+- `ROBSERVER_QUEUE`: queue to create and bind exchanges to. Defaults to `robserver.messages`.
 
 #### DB
 
