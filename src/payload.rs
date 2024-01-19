@@ -1,6 +1,7 @@
-use serde_json::Value;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
+
+use serde_json::Value;
 
 use crate::hash::hash_object;
 

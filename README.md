@@ -51,6 +51,7 @@ Configuration is done through environment variables
 
 - `ROBSERVER_BUFFER_SIZE`: number of payloads held in the memory at once. If the payloads are really big, you might want to decrease that. Defaults to `10_000`.
 - `ROBSERVER_AMQP_ADDR`: connection string for the RabbitMQ server. Defaults to `amqp://guest:guest@127.0.0.1:5672/%2f`.
+- `ROBSERVER_AMQP_DEF_ADDR`: API definition endpoint to discover and auto-bind to all exchanges. Defaults to `http://guest:guest@127.0.0.1:15672/api/definitions`.
 - `ROBSERVER_LISTEN_EX`: comma-separated list of exchanges to observe. Defaults to `amq.direct,amq.fanout,amq.headers,amq.topic`.
 - `ROBSERVER_PREFETCH`: AMQP prefetch setting. Defaults to `100`.
 - `ROBSERVER_QUEUE`: queue to create and bind exchanges to. Defaults to `robserver.messages`.
