@@ -14,14 +14,11 @@ use crate::payload::Payload;
 use payload_parser::payload_parser;
 use exchange_subscriber::exchange_subscriber;
 
-pub use types::*;
-pub use definitions::get_definitions;
-
 // Vhost is currently hard-coded to "/"
 const VHOST: &str = "/";
 const CONSUMER_TAG: &str = "robserver.ct";
 
-pub async fn declare_work_queue(channel: &Channel, queue_name: &str) -> Result<Queue, lapin::Error> {
+async fn declare_work_queue(channel: &Channel, queue_name: &str) -> Result<Queue, lapin::Error> {
 	let mut fields = FieldTable::default();
 	fields.insert("x-max-length".into(), config::get_queue_max_length().into());
 

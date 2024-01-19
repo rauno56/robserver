@@ -1,5 +1,5 @@
 use tracing::debug;
-use crate::amqp::Definitions;
+use super::types::Definitions;
 
 pub async fn get_definitions(url: &str) -> Result<Definitions, Box<dyn std::error::Error>> {
 	debug!("Requesting definitions for new bindings");

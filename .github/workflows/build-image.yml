@@ -59,7 +59,7 @@ jobs:
       with:
         image: ${{ env.IMAGE_NAME }}
         tags: ${{ steps.norm-tags.outputs.tags }}
-        containerfiles: ./Dockerfile
+        containerfiles: ./containers/Dockerfile
         layers: true
 
     - name: Build migration image
@@ -68,7 +68,7 @@ jobs:
       with:
         image: ${{ env.IMAGE_NAME }}
         tags: ${{ steps.norm-migration-tags.outputs.tags }}
-        containerfiles: ./sqlx-cli.Dockerfile
+        containerfiles: ./containers/sqlx-cli.Dockerfile
         layers: true
 
     - name: Log in to the GitHub Container registry

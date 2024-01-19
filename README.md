@@ -2,6 +2,19 @@
 
 An observer for a **R**abbitMQ server. Listens to specified exchanges(`direct` exchanges not supported), counts different *shapes* of JSON payloads and stores that information to a PostgreSQL database.
 
+## Development
+
+Docker compose configuration is provided for ease of development. With only Docker, development env can be spun up with:
+
+```bash
+# run RabbitMQ, Postgres, the app and the tests
+docker compose up -d
+
+# follow tests or app logs
+docker compose logs app -f --no-log-prefix # open application logs
+docker compose logs test -f --no-log-prefix # open tests
+```
+
 ## Running
 
 There must be an accessable RabbitMQ and PostgreSQL server. If you'd just like to test things out, run them in containers:
