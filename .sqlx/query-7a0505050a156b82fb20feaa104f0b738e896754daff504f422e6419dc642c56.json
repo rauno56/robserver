@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n\t\tinsert into data.entity as e (\n\t\t\tid,\n\t\t\tvhost,\n\t\t\texchange,\n\t\t\tpayload,\n\t\t\traw_payload,\n\t\t\trouting_key,\n\t\t\tcount\n\t\t)\n\t\tselect\n\t\t\tid,\n\t\t\tvhost,\n\t\t\texchange,\n\t\t\tpayload,\n\t\t\traw_payload,\n\t\t\trouting_key,\n\t\t\tcount\n\t\tfrom (\n\t\t\tselect\n\t\t\t\tunnest($1::numeric[]) as id,\n\t\t\t\tunnest($2::text[]) as vhost,\n\t\t\t\tunnest($3::text[]) as exchange,\n\t\t\t\tunnest($4::jsonb[]) as payload,\n\t\t\t\tunnest($5::text[]) as raw_payload,\n\t\t\t\tunnest($6::text[]) as routing_key,\n\t\t\t\tunnest($7::integer[]) as count\n\t\t) as new\n\t\ton conflict\n\t\t\ton constraint entity_pkey\n\t\t\t\tdo update set count = e.count + EXCLUDED.count, last_seen_at = now()\n\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "NumericArray",
+        "TextArray",
+        "TextArray",
+        "JsonbArray",
+        "TextArray",
+        "TextArray",
+        "Int4Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7a0505050a156b82fb20feaa104f0b738e896754daff504f422e6419dc642c56"
+}
