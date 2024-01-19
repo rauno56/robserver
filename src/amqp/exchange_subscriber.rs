@@ -41,7 +41,11 @@ impl Binder {
 
 	pub async fn bind(&mut self, bindable: BindableEx) {
 		if self.bound.contains(&bindable) {
-			debug!(?bindable, "Already bound");
+			debug!(
+				?bindable,
+				total_bound_count = self.bound.len(),
+				"Already bound"
+			);
 			return;
 		}
 

@@ -17,16 +17,18 @@ pub struct Payload {
 	pub id: u64,
 	pub vhost: String,
 	pub exchange: String,
+	pub routing_key: String,
 }
 
 impl Payload {
-	pub fn new(data: Vec<u8>, vhost: String, exchange: String) -> Payload {
+	pub fn new(data: Vec<u8>, vhost: String, exchange: String, routing_key: String) -> Payload {
 		let Ok(json) = serde_json::from_slice(&data) else {
 			return Payload {
 				content: Data::Raw(data),
 				id: 0,
 				vhost,
 				exchange,
+				routing_key,
 			};
 		};
 		let s = DefaultHasher::new();
@@ -36,6 +38,7 @@ impl Payload {
 			id,
 			vhost,
 			exchange,
+			routing_key,
 		}
 	}
 }
@@ -89,6 +92,8 @@ mod tests {
 	const EX1: &str = "A";
 	const EX2: &str = "B";
 
+	const RK: &str = "#";
+
 	fn hash(p: &Payload) -> u64 {
 		let mut s = DefaultHasher::new();
 		p.hash(&mut s);
@@ -98,34 +103,89 @@ mod tests {
 	#[test]
 	fn payload_cmp() {
 		assert_eq!(
-			Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX1)),
-			Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX1))
+			Payload::new(
+				V1.to_vec(),
+				String::from(VHOST1),
+				String::from(EX1),
+				String::from(RK)
+			),
+			Payload::new(
+				V1.to_vec(),
+				String::from(VHOST1),
+				String::from(EX1),
+				String::from(RK)
+			)
 		);
 		assert_ne!(
-			Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX1)),
-			Payload::new(V1.to_vec(), String::from(VHOST2), String::from(EX1))
+			Payload::new(
+				V1.to_vec(),
+				String::from(VHOST1),
+				String::from(EX1),
+				String::from(RK)
+			),
+			Payload::new(
+				V1.to_vec(),
+				String::from(VHOST2),
+				String::from(EX1),
+				String::from(RK)
+			)
 		);
 		assert_ne!(
-			Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX1)),
-			Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX2))
+			Payload::new(
+				V1.to_vec(),
+				String::from(VHOST1),
+				String::from(EX1),
+				String::from(RK)
+			),
+			Payload::new(
+				V1.to_vec(),
+				String::from(VHOST1),
+				String::from(EX2),
+				String::from(RK)
+			)
 		);
 	}
 
 	#[test]
 	fn payload_cmp_json_collapse() {
 		assert_eq!(
-			Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX1)),
-			Payload::new(V2.to_vec(), String::from(VHOST1), String::from(EX1))
+			Payload::new(
+				V1.to_vec(),
+				String::from(VHOST1),
+				String::from(EX1),
+				String::from(RK)
+			),
+			Payload::new(
+				V2.to_vec(),
+				String::from(VHOST1),
+				String::from(EX1),
+				String::from(RK)
+			)
 		);
 		assert_ne!(
-			Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX1)),
-			Payload::new(V3.to_vec(), String::from(VHOST1), String::from(EX1))
+			Payload::new(
+				V1.to_vec(),
+				String::from(VHOST1),
+				String::from(EX1),
+				String::from(RK)
+			),
+			Payload::new(
+				V3.to_vec(),
+				String::from(VHOST1),
+				String::from(EX1),
+				String::from(RK)
+			)
 		);
 	}
 
 	#[test]
 	fn payload_invalid() {
-		let payload = Payload::new(INVALID.to_vec(), String::from(VHOST1), String::from(EX1));
+		let payload = Payload::new(
+			INVALID.to_vec(),
+			String::from(VHOST1),
+			String::from(EX1),
+			String::from(RK),
+		);
 
 		assert_eq!(
 			payload.content,
@@ -139,12 +199,37 @@ mod tests {
 
 	#[test]
 	fn hashing() {
-		let p1 = Payload::new(V1.to_vec(), String::from(VHOST2), String::from(EX2));
-		let p2 = Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX2));
-		let p3 = Payload::new(V1.to_vec(), String::from(VHOST2), String::from(EX1));
+		let p1 = Payload::new(
+			V1.to_vec(),
+			String::from(VHOST2),
+			String::from(EX2),
+			String::from(RK),
+		);
+		let p2 = Payload::new(
+			V1.to_vec(),
+			String::from(VHOST1),
+			String::from(EX2),
+			String::from(RK),
+		);
+		let p3 = Payload::new(
+			V1.to_vec(),
+			String::from(VHOST2),
+			String::from(EX1),
+			String::from(RK),
+		);
 
-		let p4 = Payload::new(V2.to_vec(), String::from(VHOST2), String::from(EX2));
-		let p5 = Payload::new(V3.to_vec(), String::from(VHOST2), String::from(EX2));
+		let p4 = Payload::new(
+			V2.to_vec(),
+			String::from(VHOST2),
+			String::from(EX2),
+			String::from(RK),
+		);
+		let p5 = Payload::new(
+			V3.to_vec(),
+			String::from(VHOST2),
+			String::from(EX2),
+			String::from(RK),
+		);
 
 		assert_eq!(hash(&p1), hash(&p1));
 		assert_ne!(hash(&p1), hash(&p2));
@@ -162,6 +247,7 @@ mod tests {
 			V1.to_vec(),
 			String::from(VHOST1),
 			String::from(EX1),
+			String::from(RK),
 		));
 		assert_eq!(set.len(), 1);
 
@@ -169,6 +255,7 @@ mod tests {
 			V1.to_vec(),
 			String::from(VHOST1),
 			String::from(EX1),
+			String::from(RK),
 		));
 		assert_eq!(set.len(), 1);
 
@@ -176,6 +263,7 @@ mod tests {
 			V2.to_vec(),
 			String::from(VHOST1),
 			String::from(EX1),
+			String::from(RK),
 		));
 		assert_eq!(set.len(), 1);
 
@@ -183,6 +271,7 @@ mod tests {
 			V3.to_vec(),
 			String::from(VHOST1),
 			String::from(EX1),
+			String::from(RK),
 		));
 		assert_eq!(set.len(), 2);
 
@@ -190,6 +279,7 @@ mod tests {
 			V1.to_vec(),
 			String::from(VHOST1),
 			String::from(EX1),
+			String::from(RK),
 		));
 		assert_eq!(set.len(), 2);
 
@@ -197,6 +287,7 @@ mod tests {
 			V1.to_vec(),
 			String::from(VHOST2),
 			String::from(EX1),
+			String::from(RK),
 		));
 		assert_eq!(set.len(), 3);
 
@@ -204,6 +295,7 @@ mod tests {
 			V1.to_vec(),
 			String::from(VHOST1),
 			String::from(EX2),
+			String::from(RK),
 		));
 		assert_eq!(set.len(), 4);
 
@@ -211,6 +303,7 @@ mod tests {
 			V1.to_vec(),
 			String::from(VHOST2),
 			String::from(EX2),
+			String::from(RK),
 		));
 		assert_eq!(set.len(), 5);
 	}
@@ -220,31 +313,56 @@ mod tests {
 		let mut map = HashMap::new();
 
 		map.insert(
-			Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX1)),
+			Payload::new(
+				V1.to_vec(),
+				String::from(VHOST1),
+				String::from(EX1),
+				String::from(RK),
+			),
 			1,
 		);
 		assert_eq!(map.len(), 1);
 
 		map.insert(
-			Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX1)),
+			Payload::new(
+				V1.to_vec(),
+				String::from(VHOST1),
+				String::from(EX1),
+				String::from(RK),
+			),
 			2,
 		);
 		assert_eq!(map.len(), 1);
 
 		map.insert(
-			Payload::new(V2.to_vec(), String::from(VHOST1), String::from(EX1)),
+			Payload::new(
+				V2.to_vec(),
+				String::from(VHOST1),
+				String::from(EX1),
+				String::from(RK),
+			),
 			3,
 		);
 		assert_eq!(map.len(), 1);
 
 		map.insert(
-			Payload::new(V3.to_vec(), String::from(VHOST1), String::from(EX1)),
+			Payload::new(
+				V3.to_vec(),
+				String::from(VHOST1),
+				String::from(EX1),
+				String::from(RK),
+			),
 			4,
 		);
 		assert_eq!(map.len(), 2);
 
 		map.insert(
-			Payload::new(V1.to_vec(), String::from(VHOST1), String::from(EX1)),
+			Payload::new(
+				V1.to_vec(),
+				String::from(VHOST1),
+				String::from(EX1),
+				String::from(RK),
+			),
 			5,
 		);
 		assert_eq!(map.len(), 2);

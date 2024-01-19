@@ -18,6 +18,7 @@ async fn insert_counts(
 	let mut exchange = Vec::with_capacity(counts.len());
 	let mut json = Vec::with_capacity(counts.len());
 	let mut raw: Vec<Option<String>> = Vec::with_capacity(counts.len());
+	let mut routing_key: Vec<String> = Vec::with_capacity(counts.len());
 	let mut count = Vec::with_capacity(counts.len());
 	for (p, to_add) in counts.drain() {
 		if to_add == 0 {
@@ -26,6 +27,7 @@ async fn insert_counts(
 		id.push(BigDecimal::from(p.id));
 		vhost.push(p.vhost);
 		exchange.push(p.exchange);
+		routing_key.push(p.routing_key);
 		match p.content {
 			Data::Json(value) => {
 				json.push(Some(value));
@@ -42,10 +44,22 @@ async fn insert_counts(
 	sqlx::query!(
 		r#"
 		insert into data.entity as e (
-			id, vhost, exchange, payload, raw_payload, count
+			id,
+			vhost,
+			exchange,
+			payload,
+			raw_payload,
+			routing_key,
+			count
 		)
 		select
-			id, vhost, exchange, payload, raw_payload, count
+			id,
+			vhost,
+			exchange,
+			payload,
+			raw_payload,
+			routing_key,
+			count
 		from (
 			select
 				unnest($1::numeric[]) as id,
@@ -53,7 +67,8 @@ async fn insert_counts(
 				unnest($3::text[]) as exchange,
 				unnest($4::jsonb[]) as payload,
 				unnest($5::text[]) as raw_payload,
-				unnest($6::integer[]) as count
+				unnest($6::text[]) as routing_key,
+				unnest($7::integer[]) as count
 		) as new
 		on conflict
 			on constraint entity_pkey
@@ -64,6 +79,7 @@ async fn insert_counts(
 		&exchange[..],
 		&json[..] as &[Option<Value>],
 		&raw[..] as &[Option<String>],
+		&routing_key[..],
 		&count[..],
 	)
 	.execute(conn)

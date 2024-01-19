@@ -1,7 +1,7 @@
 use futures_lite::StreamExt;
 use lapin::{options::*, types::FieldTable, Channel};
 use tokio::sync::mpsc;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 use crate::config::amqp as config;
 use crate::payload::Payload;
@@ -35,11 +35,13 @@ pub async fn payload_parser(payloads: mpsc::Sender<Payload>, channel: Channel) {
 
 	while let Some(delivery) = consumer.next().await {
 		let message = delivery.unwrap();
+		debug!(?message, "Message recieved");
 
 		let payload = Payload::new(
 			message.data,
 			VHOST.to_string(),
 			message.exchange.to_string(),
+			message.routing_key.to_string(),
 		);
 
 		payloads
