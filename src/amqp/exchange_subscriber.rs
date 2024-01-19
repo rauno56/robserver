@@ -13,6 +13,7 @@ use super::VHOST;
 
 const Q: &str = "queue";
 const ROUTING_KEY_WILDCARD: &str = "#";
+const INTERNAL_PREFIX: &str = "amq.";
 
 #[derive(PartialEq, Eq, Hash, Debug)]
 struct BindableEx {
@@ -89,13 +90,13 @@ pub async fn exchange_subscriber(conn: Connection) {
 		}
 	}
 
-	let definitions_url = config::get_definitions_url();
+	let api_url = config::get_api_url();
 	let queue_name = config::get_queue();
 	let mut interval = time::interval(Duration::from_millis(5000));
 
 	loop {
 		interval.tick().await;
-		match get_definitions(&definitions_url).await {
+		match get_definitions(&api_url).await {
 			Ok(mut result) => {
 				result.bindings.retain(|binding| {
 					binding.vhost == VHOST
@@ -104,7 +105,7 @@ pub async fn exchange_subscriber(conn: Connection) {
 
 				for ex_index in 0..result.exchanges.len() {
 					let ex = &result.exchanges[ex_index];
-					if ex.vhost != VHOST {
+					if ex.vhost != VHOST || ex.name.is_empty() || ex.name.starts_with(INTERNAL_PREFIX) {
 						continue;
 					}
 					match ex.r#type {

@@ -13,7 +13,7 @@ services:
       CARGO_TERM_COLOR: always
       ROBSERVER_PG_ADDR: "postgres://postgres@db/robserver"
       ROBSERVER_AMQP_ADDR: "amqp://guest:guest@mq:5672/%2f"
-      ROBSERVER_AMQP_DEF_ADDR: "http://guest:guest@mq:15672/api/definitions"
+      ROBSERVER_AMQP_API_ADDR: "http://guest:guest@mq:15672/api"
     depends_on:
       - db
       - mq

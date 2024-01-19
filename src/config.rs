@@ -21,10 +21,10 @@ pub mod amqp {
 			.unwrap_or_else(|_| "amqp://guest:guest@127.0.0.1:5672/%2f".into())
 	}
 
-	pub fn get_definitions_url() -> String {
-		std::env::var("ROBSERVER_AMQP_DEF_ADDR")
+	pub fn get_api_url() -> String {
+		std::env::var("ROBSERVER_AMQP_API_ADDR")
 			.or_else(|_| definitions_url_from_amqp_url(get_url()))
-			.unwrap_or_else(|_| "http://guest:guest@127.0.0.1:15672/api/definitions".into())
+			.unwrap_or_else(|_| "http://guest:guest@127.0.0.1:15672/api".into())
 	}
 
 	pub fn get_exchanges() -> Vec<String> {
@@ -76,11 +76,11 @@ pub fn definitions_url_from_amqp_url(amqp_url: String) -> Result<String, ParseEr
 
 	match (parsed.username(), parsed.password(), parsed.host_str()) {
 		(user, Some(pass), Some(host)) => {
-			Ok(format!("http://{user}:{pass}@{host}:15672/api/definitions"))
+			Ok(format!("http://{user}:{pass}@{host}:15672/api"))
 		}
 		_ => {
 			// TODO: return error and let caller handle it
-			Ok("http://guest:guest@127.0.0.1:15672/api/definitions".to_string())
+			Ok("http://guest:guest@127.0.0.1:15672/api".to_string())
 		}
 	}
 }
@@ -94,14 +94,14 @@ mod test {
 		assert_eq!(
 			definitions_url_from_amqp_url(String::from("amqp://guest:guest@127.0.0.1:5672/%2f"))
 				.unwrap(),
-			String::from("http://guest:guest@127.0.0.1:15672/api/definitions")
+			String::from("http://guest:guest@127.0.0.1:15672/api")
 		);
 		assert_eq!(
 			definitions_url_from_amqp_url(String::from(
 				"amqp://user1:pass2@some.host.com:5672/%2f"
 			))
 			.unwrap(),
-			String::from("http://user1:pass2@some.host.com:15672/api/definitions")
+			String::from("http://user1:pass2@some.host.com:15672/api")
 		);
 	}
 
@@ -109,7 +109,7 @@ mod test {
 	fn def_from_amqp_fallback() {
 		assert_eq!(
 			definitions_url_from_amqp_url(String::from("amqp://some.host.com:5672/%2f")).unwrap(),
-			String::from("http://guest:guest@127.0.0.1:15672/api/definitions")
+			String::from("http://guest:guest@127.0.0.1:15672/api")
 		);
 	}
 }
