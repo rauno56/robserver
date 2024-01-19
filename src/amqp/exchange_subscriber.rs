@@ -105,7 +105,9 @@ pub async fn exchange_subscriber(conn: Connection) {
 
 				for ex_index in 0..result.exchanges.len() {
 					let ex = &result.exchanges[ex_index];
-					if ex.vhost != VHOST || ex.name.is_empty() || ex.name.starts_with(INTERNAL_PREFIX) {
+					if ex.vhost != VHOST
+						|| ex.name.is_empty() || ex.name.starts_with(INTERNAL_PREFIX)
+					{
 						continue;
 					}
 					match ex.r#type {

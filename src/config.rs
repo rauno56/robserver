@@ -75,9 +75,7 @@ pub fn definitions_url_from_amqp_url(amqp_url: String) -> Result<String, ParseEr
 	let parsed = Url::parse(&amqp_url)?;
 
 	match (parsed.username(), parsed.password(), parsed.host_str()) {
-		(user, Some(pass), Some(host)) => {
-			Ok(format!("http://{user}:{pass}@{host}:15672/api"))
-		}
+		(user, Some(pass), Some(host)) => Ok(format!("http://{user}:{pass}@{host}:15672/api")),
 		_ => {
 			// TODO: return error and let caller handle it
 			Ok("http://guest:guest@127.0.0.1:15672/api".to_string())

@@ -1,9 +1,12 @@
-use super::types::{Definitions,Binding,Exchange};
+use super::types::{Binding, Definitions, Exchange};
 use tracing::{debug, error};
 
 pub async fn get_definitions(url: &str) -> Result<Definitions, Box<dyn std::error::Error>> {
 	debug!("Requesting definitions for new bindings");
-	let body = reqwest::get(format!("{}/exchanges", url)).await?.text().await?;
+	let body = reqwest::get(format!("{}/exchanges", url))
+		.await?
+		.text()
+		.await?;
 
 	let exchanges = match serde_json::from_str::<Vec<Exchange>>(&body) {
 		Ok(res) => Ok(res),
@@ -13,7 +16,10 @@ pub async fn get_definitions(url: &str) -> Result<Definitions, Box<dyn std::erro
 		}
 	}?;
 
-	let body = reqwest::get(format!("{}/bindings", url)).await?.text().await?;
+	let body = reqwest::get(format!("{}/bindings", url))
+		.await?
+		.text()
+		.await?;
 	let bindings = match serde_json::from_str::<Vec<Binding>>(&body) {
 		Ok(res) => Ok(res),
 		Err(error) => {
@@ -23,7 +29,7 @@ pub async fn get_definitions(url: &str) -> Result<Definitions, Box<dyn std::erro
 	}?;
 
 	Ok(Definitions {
-			exchanges,
-			bindings,
-		})
+		exchanges,
+		bindings,
+	})
 }
