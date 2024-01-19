@@ -1,20 +1,17 @@
-use serde_json::Value;
-
 use std::hash::{Hash, Hasher};
+
+use serde_json::Value;
 use tracing::debug;
 
 pub fn hash_object<T: Hasher>(obj: &Value, s: T) -> T {
 	let mut state: T = s;
-	match obj {
-		Value::Object(x) => {
-			'>'.hash(&mut state);
-			for (key, value) in x.iter() {
-				debug!("< {key}: {value}");
-				key.hash(&mut state);
-				state = hash_object(value, state);
-			}
+	if let Value::Object(x) = obj {
+		'>'.hash(&mut state);
+		for (key, value) in x.iter() {
+			debug!("< {key}: {value}");
+			key.hash(&mut state);
+			state = hash_object(value, state);
 		}
-		_ => {}
 	}
 	state
 }

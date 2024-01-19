@@ -1,0 +1,45 @@
+version: '3'
+
+name: robserver
+services:
+
+  app:
+    build:
+      context: ./
+      dockerfile: ./containers/dev.Dockerfile
+    volumes:
+      - .:/usr/src/app
+    environment:
+      CARGO_TERM_COLOR: always
+      ROBSERVER_PG_ADDR: "postgres://postgres@db/robserver"
+      ROBSERVER_AMQP_ADDR: "amqp://guest:guest@mq:5672/%2f"
+      ROBSERVER_AMQP_DEF_ADDR: "http://guest:guest@mq:15672/api/definitions"
+    depends_on:
+      - db
+      - mq
+
+  test:
+    build:
+      context: ./
+      dockerfile: ./containers/dev.Dockerfile
+    volumes:
+      - .:/usr/src/app
+    environment:
+      CARGO_TERM_COLOR: always
+    command: ["cargo", "watch", "-x", "test"]
+
+  db:
+    image: postgres:16.1
+    volumes:
+      - ./migrations/:/docker-entrypoint-initdb.d/
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: robserver
+
+  mq:
+    image: rabbitmq:3.10.7-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"

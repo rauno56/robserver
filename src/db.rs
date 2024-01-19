@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde_json::Value;
 use sqlx::postgres::PgQueryResult;
 use sqlx::{types::BigDecimal, PgPool};
@@ -6,7 +8,6 @@ use tracing::info;
 
 use crate::config;
 use crate::payload::{Data, Payload};
-use std::collections::HashMap;
 
 async fn insert_counts(
 	conn: &PgPool,

@@ -17,11 +17,20 @@ pub mod amqp {
 			.unwrap_or_else(|_| "amqp://guest:guest@127.0.0.1:5672/%2f".into())
 	}
 
+	pub fn get_definitions_url() -> String {
+		std::env::var("ROBSERVER_AMQP_DEF_ADDR")
+			.unwrap_or_else(|_| "http://guest:guest@127.0.0.1:15672/api/definitions".into())
+	}
+
 	pub fn get_exchanges() -> Vec<String> {
 		let exchanges = std::env::var("ROBSERVER_LISTEN_EX")
 			.unwrap_or_else(|_| "amq.direct,amq.fanout,amq.headers,amq.topic".into());
 
-		exchanges.split(',').map(str::to_string).filter(|x| !x.is_empty()).collect()
+		exchanges
+			.split(',')
+			.map(str::to_string)
+			.filter(|x| !x.is_empty())
+			.collect()
 	}
 
 	pub fn get_prefetch() -> u16 {
@@ -38,8 +47,7 @@ pub mod amqp {
 	}
 
 	pub fn get_queue() -> String {
-		std::env::var("ROBSERVER_QUEUE")
-			.unwrap_or_else(|_| "robserver.messages".into())
+		std::env::var("ROBSERVER_QUEUE").unwrap_or_else(|_| "robserver.messages".into())
 	}
 }
 
