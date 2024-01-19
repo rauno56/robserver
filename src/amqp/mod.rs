@@ -1,7 +1,7 @@
-mod types;
 mod definitions;
-mod payload_parser;
 mod exchange_subscriber;
+mod payload_parser;
+mod types;
 
 use lapin::{options::*, types::FieldTable, Channel, Connection, ConnectionProperties, Queue};
 use tokio::sync::mpsc;
@@ -11,8 +11,8 @@ use tracing::info;
 use crate::config::amqp as config;
 use crate::payload::Payload;
 
-use payload_parser::payload_parser;
 use exchange_subscriber::exchange_subscriber;
+use payload_parser::payload_parser;
 
 // Vhost is currently hard-coded to "/"
 const VHOST: &str = "/";

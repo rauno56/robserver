@@ -36,9 +36,14 @@ pub async fn payload_parser(payloads: mpsc::Sender<Payload>, channel: Channel) {
 	while let Some(delivery) = consumer.next().await {
 		let message = delivery.unwrap();
 
-		let payload = Payload::new(message.data, VHOST.to_string(), message.exchange.to_string());
+		let payload = Payload::new(
+			message.data,
+			VHOST.to_string(),
+			message.exchange.to_string(),
+		);
 
-		payloads.send(payload)
+		payloads
+			.send(payload)
 			.await
 			.expect("Could not send payload for processing");
 

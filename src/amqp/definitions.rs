@@ -1,5 +1,5 @@
-use tracing::debug;
 use super::types::Definitions;
+use tracing::debug;
 
 pub async fn get_definitions(url: &str) -> Result<Definitions, Box<dyn std::error::Error>> {
 	debug!("Requesting definitions for new bindings");
