@@ -1,6 +1,6 @@
 # Robserver
 
-An observer for a **R**abbitMQ server. Listens to specified exchanges(`direct` exchanges not supported), counts different *shapes* of JSON payloads and stores that information to a PostgreSQL database.
+An observer for a **R**abbitMQ server. Listens to specified exchanges, auto-detects new exchanges via the management API, counts different *shapes* of JSON payloads and stores that information to a PostgreSQL database.
 
 ## Development
 
