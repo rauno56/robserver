@@ -1,3 +1,5 @@
+use url::{ParseError, Url};
+
 pub fn init() {
 	if std::env::var("RUST_LOG").is_err() {
 		std::env::set_var("RUST_LOG", "info");
@@ -12,6 +14,8 @@ pub fn get_buffer_size() -> usize {
 }
 
 pub mod amqp {
+	use super::definitions_url_from_amqp_url;
+
 	pub fn get_url() -> String {
 		std::env::var("ROBSERVER_AMQP_ADDR")
 			.unwrap_or_else(|_| "amqp://guest:guest@127.0.0.1:5672/%2f".into())
@@ -19,6 +23,7 @@ pub mod amqp {
 
 	pub fn get_definitions_url() -> String {
 		std::env::var("ROBSERVER_AMQP_DEF_ADDR")
+			.or_else(|_| definitions_url_from_amqp_url(get_url()))
 			.unwrap_or_else(|_| "http://guest:guest@127.0.0.1:15672/api/definitions".into())
 	}
 
@@ -63,5 +68,48 @@ pub mod psql {
 			v.parse::<usize>()
 				.expect("invalid ROBSERVER_MAX_QUERY_SIZE")
 		})
+	}
+}
+
+pub fn definitions_url_from_amqp_url(amqp_url: String) -> Result<String, ParseError> {
+	let parsed = Url::parse(&amqp_url)?;
+
+	match (parsed.username(), parsed.password(), parsed.host_str()) {
+		(user, Some(pass), Some(host)) => {
+			Ok(format!("http://{user}:{pass}@{host}:15672/api/definitions"))
+		}
+		_ => {
+			// TODO: return error and let caller handle it
+			Ok("http://guest:guest@127.0.0.1:15672/api/definitions".to_string())
+		}
+	}
+}
+
+#[cfg(test)]
+mod test {
+	use super::*;
+
+	#[test]
+	fn def_from_amqp() {
+		assert_eq!(
+			definitions_url_from_amqp_url(String::from("amqp://guest:guest@127.0.0.1:5672/%2f"))
+				.unwrap(),
+			String::from("http://guest:guest@127.0.0.1:15672/api/definitions")
+		);
+		assert_eq!(
+			definitions_url_from_amqp_url(String::from(
+				"amqp://user1:pass2@some.host.com:5672/%2f"
+			))
+			.unwrap(),
+			String::from("http://user1:pass2@some.host.com:15672/api/definitions")
+		);
+	}
+
+	#[test]
+	fn def_from_amqp_fallback() {
+		assert_eq!(
+			definitions_url_from_amqp_url(String::from("amqp://some.host.com:5672/%2f")).unwrap(),
+			String::from("http://guest:guest@127.0.0.1:15672/api/definitions")
+		);
 	}
 }
