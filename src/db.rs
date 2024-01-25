@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 use serde_json::Value;
-use sqlx::postgres::PgQueryResult;
+use sqlx::postgres::{PgPoolOptions, PgQueryResult};
+use sqlx::Executor;
 use sqlx::{types::BigDecimal, PgPool};
 use tokio::sync::mpsc;
-use tracing::info;
+use tracing::{error, info};
 
 use crate::config;
 use crate::payload::{Data, Payload};
@@ -88,7 +89,15 @@ async fn insert_counts(
 
 pub async fn consumer(mut rx: mpsc::Receiver<Payload>) {
 	info!("Connecting...");
-	let pool = PgPool::connect(config::psql::get_url().as_str())
+	let pool = PgPoolOptions::new()
+		.after_connect(|conn, _meta| {
+			Box::pin(async move {
+				conn.execute("SET application_name = 'robserver';").await?;
+
+				Ok(())
+			})
+		})
+		.connect(config::psql::get_url().as_str())
 		.await
 		.expect("Failed to connect to Postgres");
 	info!("Connected");
@@ -98,6 +107,10 @@ pub async fn consumer(mut rx: mpsc::Receiver<Payload>) {
 
 	loop {
 		let x = rx.recv_many(&mut to_handle, buffer_size).await;
+		if x == 0 {
+			error!("Channel closed");
+			break;
+		}
 		let mut counts_to_handle: HashMap<Payload, usize> = HashMap::with_capacity(x);
 		info!(len = x, "Processing items");
 
@@ -111,7 +124,7 @@ pub async fn consumer(mut rx: mpsc::Receiver<Payload>) {
 		let _ = insert_counts(&pool, counts_to_handle)
 			.await
 			.expect("Failed to insert counts");
-		// slow queries down
-		// tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
 	}
+
+	info!("DB worker finished");
 }

@@ -55,4 +55,6 @@ pub async fn payload_parser(payloads: mpsc::Sender<Payload>, channel: Channel) {
 			.await
 			.expect("Failed to ack");
 	}
+
+	info!("Payload parser finished");
 }
