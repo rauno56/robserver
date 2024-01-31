@@ -102,6 +102,7 @@ pub async fn consumer(mut rx: mpsc::Receiver<Payload>) {
 		.expect("Failed to connect to Postgres");
 	info!("Connected");
 
+	let query_delay = config::psql::get_query_delay();
 	let buffer_size = config::psql::get_max_query_size();
 	let mut to_handle: Vec<Payload> = Vec::with_capacity(buffer_size);
 
@@ -124,6 +125,12 @@ pub async fn consumer(mut rx: mpsc::Receiver<Payload>) {
 		let _ = insert_counts(&pool, counts_to_handle)
 			.await
 			.expect("Failed to insert counts");
+
+		if x < buffer_size {
+			// The process is IO bound, let's save that IO for the MQ end
+			tokio::time::sleep(tokio::time::Duration::from_millis(query_delay)).await;
+			info!(ms = query_delay, "Sleeping");
+		}
 	}
 
 	info!("DB worker finished");

@@ -69,6 +69,12 @@ pub mod psql {
 				.expect("invalid ROBSERVER_MAX_QUERY_SIZE")
 		})
 	}
+
+	pub fn get_query_delay() -> u64 {
+		std::env::var("ROBSERVER_QUERY_DELAY").map_or(1000, |v| {
+			v.parse::<u64>().expect("invalid ROBSERVER_QUERY_DELAY")
+		})
+	}
 }
 
 pub fn definitions_url_from_amqp_url(amqp_url: String) -> Result<String, ParseError> {
